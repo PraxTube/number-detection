@@ -54,6 +54,37 @@ def plot_variances(images, labels):
     plt.show()
 
 
+def plot_pvs(images, labels):
+    X = images[:1000]
+    means = empirical_mean(X)
+    Y_T = X - means
+    Y = Y_T.T
+    N = 50
+
+    E = np.real(np.linalg.eig(Y @ Y_T)[0])[:N]
+    _, raw_S, _ = np.linalg.svd(Y)
+    S = np.power(raw_S, 2)[:N]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 8))
+
+    ax = axes[0]
+    ax.scatter(range(N), E)
+    ax.set_title("Real Eigenvalues of S")
+    ax.set_xlabel("Index")
+    ax.set_ylabel("Value")
+    ax.grid(True)
+
+    ax = axes[1]
+    ax.scatter(range(N), S)
+    ax.set_title("Squared Singular values")
+    ax.set_xlabel("Index")
+    ax.set_ylabel("Value")
+    ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     train_images = np.fromfile("data/train/images", dtype=np.uint8)
     images = np.reshape(train_images[16:], (-1, 784))
@@ -61,8 +92,7 @@ def main():
     train_labels = np.fromfile("data/train/labels", dtype=np.uint8)
     labels = train_labels[8:]
 
-    plot_means(images, labels)
-    plot_variances(images, labels)
+    plot_pvs(images, labels)
 
 
 if __name__ == "__main__":
