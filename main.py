@@ -49,6 +49,8 @@ def plot_means(images, labels):
         ax.set_title("Label: {}".format(i))
         ax.set_xticks([])
         ax.set_yticks([])
+
+    plt.suptitle("Means from First 100")
     plt.tight_layout()
     plt.show()
 
@@ -65,6 +67,8 @@ def plot_variances(images, labels):
         ax.set_title("Label: {}".format(i))
         ax.set_xticks([])
         ax.set_yticks([])
+
+    plt.suptitle("Variances from First 100")
     plt.tight_layout()
     plt.show()
 
@@ -96,6 +100,7 @@ def plot_pvs(images, labels):
     ax.set_ylabel("Value")
     ax.grid(True)
 
+    plt.suptitle("PCA from Eigenvalues and SVD")
     plt.tight_layout()
     plt.show()
 
@@ -124,6 +129,7 @@ def plot_subspace(images, labels):
         ax.set_xticks([])
         ax.set_yticks([])
 
+    plt.suptitle("Subspace (b and A)")
     plt.tight_layout()
     plt.show()
 
@@ -148,6 +154,7 @@ def plot_four_images(images, labels):
         ax.set_xticks([])
         ax.set_yticks([])
 
+    plt.suptitle("Four numbers and their respective projection")
     plt.tight_layout()
     plt.show()
 
@@ -181,14 +188,56 @@ def plot_k_means(images, labels, test_images, test_labels):
     t_0 = project_to_subspace(A, b, test_images[test_labels == 0][:100])
     t_1 = project_to_subspace(A, b, test_images[test_labels == 1][:100])
 
+    wrong_t_0 = []
+    wrong_t_1 = []
+
+    # This is extremely stateful, the centers are initialized
+    # essentially randomly, so if you were to use a different
+    # data set then it could very well be that
+    # the centers would have differnt labels.
+    # As this is a simple plotting example it's going to suffice.
+    for t in t_0:
+        distances = np.linalg.norm(t - centers, axis=1)
+        closest_center = np.argmin(distances)
+        if closest_center != 0:
+            wrong_t_0.append(t)
+    for t in t_1:
+        distances = np.linalg.norm(t - centers, axis=1)
+        closest_center = np.argmin(distances)
+        if closest_center != 1:
+            wrong_t_1.append(t)
+
+    w_t_0 = np.array(wrong_t_0)
+    w_t_1 = np.array(wrong_t_1)
+
     fig, axes = plt.subplots(1, 1, figsize=(14, 8))
 
     ax = axes
-    ax.scatter(t_0[:, 0], t_0[:, 1])
-    ax.scatter(t_1[:, 0], t_1[:, 1])
-    ax.scatter(centers[:, 0], centers[:, 1])
+    ax.scatter(t_0[:, 0], t_0[:, 1], label="Test Data of number '0'", s=30)
+    ax.scatter(t_1[:, 0], t_1[:, 1], label="Test Data of number '1'", s=30)
+    if len(w_t_0) > 0:
+        ax.scatter(
+            w_t_0[:, 0],
+            w_t_0[:, 1],
+            label="WRONGLY assigned Data of number '0'",
+            marker="x",
+            s=120,
+        )
+    if len(w_t_1) > 0:
+        ax.scatter(
+            w_t_1[:, 0],
+            w_t_1[:, 1],
+            label="WRONGLY assigned Data of number '1'",
+            marker="x",
+            s=120,
+        )
+    ax.scatter(
+        centers[:, 0], centers[:, 1], label="Centroids calculated by K-means", s=100
+    )
     ax.grid(True)
+    ax.legend()
 
+    plt.suptitle("Center and clasified test data set using K-means algorithm")
     plt.tight_layout()
     plt.show()
 
@@ -204,7 +253,13 @@ def main():
     test_labels = np.fromfile("data/test/labels", dtype=np.uint8)
     t_labels = test_labels[8:]
 
+    plot_means(images, labels)
+    plot_variances(images, labels)
+    plot_pvs(images, labels)
+    plot_subspace(images, labels)
+    plot_four_images(images, labels)
     plot_k_means(images, labels, t_images, t_labels)
+    print("DONE")
 
 
 if __name__ == "__main__":
