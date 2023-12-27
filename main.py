@@ -22,6 +22,21 @@ def empirical_variance(X):
     return Y.mean(axis=0)
 
 
+def covariance_eigenvectors(images, labels):
+    X = images
+    means = empirical_mean(X)
+    Y_T = X - means
+    Y = Y_T.T
+
+    U, _, _ = np.linalg.svd(Y)
+    return U.T
+
+
+def project_to_subspace(A, b, x):
+    t = A @ (x - b)
+    return t
+
+
 def plot_means(images, labels):
     means = np.zeros((10, 28, 28))
     for i in range(N):
@@ -85,6 +100,58 @@ def plot_pvs(images, labels):
     plt.show()
 
 
+def plot_subspace(images, labels):
+    X = images[:1000]
+    b = empirical_mean(X)
+    S = covariance_eigenvectors(X, labels)
+    A = S[:5]
+
+    fig, axes = plt.subplots(1, 6, figsize=(14, 8))
+    images = np.vstack((b, A))
+    titles = (
+        "Mean, b",
+        "1. column vector of A",
+        "2. column vector of A",
+        "3. column vector of A",
+        "4. column vector of A",
+        "5. column vector of A",
+    )
+
+    for i in range(6):
+        ax = axes[i]
+        ax.imshow(images[i].reshape((28, 28)), cmap="gray_r")
+        ax.set_title(titles[i])
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_four_images(images, labels):
+    X = images[:1000]
+    indices = (69, 420, 500, 1500)
+    b = empirical_mean(X)
+    A = covariance_eigenvectors(X, labels)[:5]
+
+    t = np.array([project_to_subspace(A, b, images[i]) for i in indices])
+
+    fig, axes = plt.subplots(2, len(indices), figsize=(14, 8))
+    for i in range(len(indices)):
+        ax = axes[0, i]
+        ax.imshow(images[indices[i]].reshape((28, 28)), cmap="gray_r")
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        ax = axes[1, i]
+        ax.imshow(t[i].reshape(1, -1), cmap="gray_r")
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     train_images = np.fromfile("data/train/images", dtype=np.uint8)
     images = np.reshape(train_images[16:], (-1, 784))
@@ -92,7 +159,8 @@ def main():
     train_labels = np.fromfile("data/train/labels", dtype=np.uint8)
     labels = train_labels[8:]
 
-    plot_pvs(images, labels)
+    # plot_subspace(images, labels)
+    plot_four_images(images, labels)
 
 
 if __name__ == "__main__":
