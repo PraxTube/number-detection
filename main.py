@@ -22,7 +22,7 @@ def empirical_variance(X):
     return Y.mean(axis=0)
 
 
-def covariance_eigenvectors(images, labels):
+def covariance_eigenvectors(images):
     X = images
     means = empirical_mean(X)
     Y_T = X - means
@@ -32,9 +32,9 @@ def covariance_eigenvectors(images, labels):
     return U.T
 
 
-def project_to_subspace(A, b, x):
-    t = A @ (x - b)
-    return t
+def project_to_subspace(A, b, X):
+    t = A @ (X.T - b[:, np.newaxis])
+    return t.T
 
 
 def plot_means(images, labels):
@@ -103,7 +103,7 @@ def plot_pvs(images, labels):
 def plot_subspace(images, labels):
     X = images[:1000]
     b = empirical_mean(X)
-    S = covariance_eigenvectors(X, labels)
+    S = covariance_eigenvectors(X)
     A = S[:5]
 
     fig, axes = plt.subplots(1, 6, figsize=(14, 8))
@@ -130,11 +130,11 @@ def plot_subspace(images, labels):
 
 def plot_four_images(images, labels):
     X = images[:1000]
-    indices = (69, 420, 500, 1500)
+    indices = np.array((69, 420, 500, 1500))
     b = empirical_mean(X)
-    A = covariance_eigenvectors(X, labels)[:5]
+    A = covariance_eigenvectors(X)[:5]
 
-    t = np.array([project_to_subspace(A, b, images[i]) for i in indices])
+    t = project_to_subspace(A, b, images[indices])
 
     fig, axes = plt.subplots(2, len(indices), figsize=(14, 8))
     for i in range(len(indices)):
@@ -152,15 +152,59 @@ def plot_four_images(images, labels):
     plt.show()
 
 
+def plot_k_means(images, labels, test_images, test_labels):
+    K = 2
+    max_iterations = 100
+    first_images = images[labels == 0][:500]
+    second_images = images[labels == 1][:500]
+    X = np.vstack((first_images, second_images))
+
+    b = empirical_mean(X)
+    A = covariance_eigenvectors(X)[:2]
+
+    t = project_to_subspace(A, b, X)
+    centers = np.array(((5, 1), (1, 5)))
+
+    for _ in range(max_iterations):
+        C = [[] for _ in range(K)]
+
+        for i in range(len(X)):
+            distances = np.linalg.norm(t[i] - centers, axis=1)
+            closest_center = np.argmin(distances)
+            C[closest_center].append(i)
+
+        for k in range(K):
+            if len(C[k]) > 0:
+                cluster_points = t[C[k]]
+                centers[k] = np.mean(cluster_points, axis=0)
+
+    t_0 = project_to_subspace(A, b, test_images[test_labels == 0][:100])
+    t_1 = project_to_subspace(A, b, test_images[test_labels == 1][:100])
+
+    fig, axes = plt.subplots(1, 1, figsize=(14, 8))
+
+    ax = axes
+    ax.scatter(t_0[:, 0], t_0[:, 1])
+    ax.scatter(t_1[:, 0], t_1[:, 1])
+    ax.scatter(centers[:, 0], centers[:, 1])
+    ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     train_images = np.fromfile("data/train/images", dtype=np.uint8)
     images = np.reshape(train_images[16:], (-1, 784))
-
     train_labels = np.fromfile("data/train/labels", dtype=np.uint8)
     labels = train_labels[8:]
 
-    # plot_subspace(images, labels)
-    plot_four_images(images, labels)
+    test_images = np.fromfile("data/test/images", dtype=np.uint8)
+    t_images = np.reshape(test_images[16:], (-1, 784))
+    test_labels = np.fromfile("data/test/labels", dtype=np.uint8)
+    t_labels = test_labels[8:]
+
+    plot_k_means(images, labels, t_images, t_labels)
 
 
 if __name__ == "__main__":
